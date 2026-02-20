@@ -49,15 +49,25 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-# AGORA PROTEGEMOS AS ROTAS EXISTENTES
 @app.route('/')
-@login_required # Só acessa se estiver logado
+@login_required 
 def index():
-    ativos = db.listar_inventario_resumo()
-    stats = db.get_estatisticas()
+    # 1. Captura os filtros que vêm da URL (se existirem)
+    filtro_tipo = request.args.get('tipo', '')
+    filtro_modelo = request.args.get('modelo', '')
+
+    # 2. Busca os ativos filtrados (ou todos, se os campos estiverem vazios)
+    ativos = db.listar_inventario_filtrado(filtro_tipo, filtro_modelo)
     
+    stats = db.get_estatisticas()
     meus_equipamentos = db.listar_equipamentos_por_responsavel(current_user.id)
-    return render_template('index.html', ativos=ativos, stats=stats, meus_equipamentos=meus_equipamentos)
+    
+    return render_template('index.html', 
+                            ativos=ativos, 
+                            stats=stats, 
+                            meus_equipamentos=meus_equipamentos,
+                            filtro_tipo=filtro_tipo, # Passamos de volta para manter o campo preenchido
+                            filtro_modelo=filtro_modelo)
 
 @app.route('/editar/<tag>', methods=['GET', 'POST'])
 def editar(tag):
@@ -96,10 +106,67 @@ def atualizar_responsavel():
         
     return redirect(url_for('index'))
 
+# @app.route('/relatorio/pdf')
+# @login_required
+# def gerar_relatorio_pdf():
+#     ativos = db.listar_inventario_resumo()
+    
+#     pdf = FPDF()
+#     pdf.add_page()
+    
+#     # Cabeçalho
+#     pdf.set_font("helvetica", "B", 16)
+#     pdf.cell(0, 10, "AssetFlow - Relatório de Inventário de TI", 
+#             new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+    
+#     pdf.set_font("helvetica", "", 10)
+#     pdf.cell(0, 10, f"Gerado por: {current_user.username}", 
+#             new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+#     pdf.ln(10)
+    
+#     # Tabela Cabeçalho
+#     pdf.set_fill_color(200, 220, 255)
+#     pdf.set_font("helvetica", "B", 10)
+#     pdf.cell(30, 10, "Patrimônio", border=1, fill=True)
+#     pdf.cell(35, 10, "Tipo", border=1, fill=True)
+#     pdf.cell(50, 10, "Modelo", border=1, fill=True)
+#     pdf.cell(30, 10, "Status", border=1, fill=True)
+#     pdf.cell(45, 10, "Responsável", border=1, fill=True, 
+#             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    
+#     # Tabela Dados
+#     pdf.set_font("helvetica", "", 9)
+#     for ativo in ativos:
+#         pdf.cell(30, 10, str(ativo['tag_patrimonio']), border=1)
+#         pdf.cell(35, 10, str(ativo['tipo']), border=1)
+#         pdf.cell(50, 10, str(ativo['modelo']), border=1)
+#         pdf.cell(30, 10, str(ativo['status']), border=1)
+#         pdf.cell(45, 10, str(ativo['responsavel_atual']), border=1, 
+#                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+#     # --- A MÁGICA PARA RESOLVER O ERRO ---
+#     # Geramos o PDF como bytes e colocamos num buffer de memória (BytesIO)
+#     pdf_output = pdf.output()
+#     buffer = io.BytesIO(pdf_output)
+#     buffer.seek(0)
+
+#     return send_file(
+#         buffer,
+#         as_attachment=False,
+#         download_name='relatorio_ativos.pdf',
+#         mimetype='application/pdf'
+#     )
+
 @app.route('/relatorio/pdf')
 @login_required
 def gerar_relatorio_pdf():
-    ativos = db.listar_inventario_resumo()
+    # 1. Captura os filtros da URL (os mesmos usados na index)
+    filtro_tipo = request.args.get('tipo', '')
+    filtro_modelo = request.args.get('modelo', '')
+
+    # 2. Busca os dados usando a nova função filtrada que criamos no database.py
+    # Se os filtros estiverem vazios, ela trará tudo automaticamente
+    ativos = db.listar_inventario_filtrado(filtro_tipo, filtro_modelo)
     
     pdf = FPDF()
     pdf.add_page()
@@ -112,7 +179,13 @@ def gerar_relatorio_pdf():
     pdf.set_font("helvetica", "", 10)
     pdf.cell(0, 10, f"Gerado por: {current_user.username}", 
             new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
-    pdf.ln(10)
+    
+    # Linha extra para mostrar quais filtros foram aplicados no PDF
+    texto_filtro = f"Filtros: Tipo [{filtro_tipo or 'Todos'}] | Modelo [{filtro_modelo or 'Todos'}]"
+    pdf.set_font("helvetica", "I", 8)
+    pdf.cell(0, 10, texto_filtro, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+    
+    pdf.ln(5)
     
     # Tabela Cabeçalho
     pdf.set_fill_color(200, 220, 255)
@@ -127,15 +200,17 @@ def gerar_relatorio_pdf():
     # Tabela Dados
     pdf.set_font("helvetica", "", 9)
     for ativo in ativos:
+        # Garante que o texto não seja None para não dar erro no PDF
+        resp = ativo['responsavel_atual'] if ativo['responsavel_atual'] else "N/A"
+        
         pdf.cell(30, 10, str(ativo['tag_patrimonio']), border=1)
         pdf.cell(35, 10, str(ativo['tipo']), border=1)
         pdf.cell(50, 10, str(ativo['modelo']), border=1)
         pdf.cell(30, 10, str(ativo['status']), border=1)
-        pdf.cell(45, 10, str(ativo['responsavel_atual']), border=1, 
+        pdf.cell(45, 10, str(resp), border=1, 
                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-    # --- A MÁGICA PARA RESOLVER O ERRO ---
-    # Geramos o PDF como bytes e colocamos num buffer de memória (BytesIO)
+    # Geramos o PDF como bytes e colocamos num buffer de memória
     pdf_output = pdf.output()
     buffer = io.BytesIO(pdf_output)
     buffer.seek(0)

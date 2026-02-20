@@ -105,6 +105,26 @@ class Database:
         rows = cursor.fetchall()
         conn.close()
         return rows
+    
+    def listar_inventario_filtrado(self, tipo="", modelo=""):
+        query = "SELECT * FROM ativos WHERE 1=1"
+        params = []
+
+        if tipo:
+            query += " AND tipo LIKE ?"
+            params.append(f"%{tipo}%")
+    
+        if modelo:
+            query += " AND modelo LIKE ?"
+            params.append(f"%{modelo}%")
+
+        query += " ORDER BY tag_patrimonio DESC"
+
+        with sqlite3.connect(self.db_name) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            return cursor.fetchall()
 
     def get_estatisticas(self):
         conn = self.get_connection()
