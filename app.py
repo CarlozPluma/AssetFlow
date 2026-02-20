@@ -6,7 +6,7 @@ from fpdf.enums import XPos, YPos
 from database import Database
 
 app = Flask(__name__)
-app.secret_key = '20@09@2003@dvpl' # Necessário para sessões
+app.secret_key = '20@09@2003@dvpl'
 
 # Configuração do Flask-Login
 login_manager = LoginManager()
@@ -179,7 +179,7 @@ def eliminar_colaborador(id_usuario):
 @app.route('/colaboradores/novo', methods=['GET', 'POST'])
 @login_required
 def novo_colaborador():
-    # TRAVA DE SEGURANÇA: Apenas o seu usuário admin acessa
+    # TRAVA DE SEGURANÇA: apenas usuario admin podera criar novos usuarios
     if current_user.username != 'admin':
         flash('Acesso negado: apenas o administrador pode criar usuários.', 'danger')
         return redirect(url_for('index'))
