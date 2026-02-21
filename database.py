@@ -57,6 +57,16 @@ class Database:
         user = cursor.fetchone()
         conn.close()
         return user
+    
+    def buscar_usuario_por_id(self, user_id):
+        """Busca o usuário pelo ID para manter a sessão ativa."""
+        conn = self.get_connection()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM usuarios WHERE id = ?", (user_id,))
+        user = cursor.fetchone()
+        conn.close()
+        return user
 
     def excluir_usuario(self, id_usuario):
         """Remove um utilizador do sistema pelo ID."""
@@ -72,12 +82,12 @@ class Database:
         finally:
             conn.close()
 
-    def inserir_usuario(self, username, password):
+    def inserir_usuario(self, username, password, role='tecnico'):
         """Cria um novo colaborador no sistema."""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO usuarios (username, password) VALUES (?, ?)", (username, password))
+            cursor.execute("INSERT INTO usuarios (username, password, role) VALUES (?, ?, ?)", (username, password, role))
             conn.commit()
             return True
         except sqlite3.IntegrityError:

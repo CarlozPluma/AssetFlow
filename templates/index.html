@@ -10,7 +10,7 @@
     
     <style>
         :root {
-            --sidebar-bg: #111827; /* Azul quase preto */
+            --sidebar-bg: #111827;
             --accent-color: #3b82f6; /* Azul moderno */
             --bg-main: #f9fafb;
             --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
@@ -147,7 +147,7 @@
         <div class="list-group">
             <a href="/" class="list-group-item active"><i class="bi bi-house-door me-2"></i> Dashboard</a>
             <a href="/cadastrar" class="list-group-item"><i class="bi bi-plus-circle me-2"></i> Novo Ativo</a>
-            <a href="/colaboradores" class="list-group-item"><i class="bi bi-people me-2"></i> Colaboradores</a>
+            <a href="/colaboradores" class="list-group-item"><i class="bi bi-people me-2"></i> Usuarios</a>
             <a href="{{ url_for('gerar_relatorio_pdf', tipo=filtro_tipo, modelo=filtro_modelo) }}" 
     target="_blank" 
     class="btn btn-outline-secondary rounded-pill px-4">

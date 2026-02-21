@@ -17,30 +17,31 @@ db = Database()
 
 # Classe de Usuário necessária para o Flask-Login
 class User(UserMixin):
-    def __init__(self, id, username):
+    def __init__(self, id, username, role):
         self.id = id
         self.username = username
+        self.role = role
 
 @login_manager.user_loader
 def load_user(user_id):
-    # Esta função recupera o usuário do banco pela ID (sessão)
-    return User(user_id, "admin") 
+    user_db = db.buscar_usuario_por_id(user_id)
+    if user_db:
+        return User(id=user_db['id'], username=user_db['username'], role=user_db['role'])
+    return None
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        
         user_db = db.buscar_usuario(username)
         
         if user_db and user_db['password'] == password:
-            user_obj = User(id=user_db['id'], username=user_db['username'])
+            user_obj = User(id=user_db['id'], username=user_db['username'], role=user_db['role'])
             login_user(user_obj)
             return redirect(url_for('index'))
         else:
             flash('Usuário ou senha inválidos', 'danger')
-            
     return render_template('login.html')
 
 @app.route('/logout')
@@ -105,57 +106,6 @@ def atualizar_responsavel():
         flash('Erro ao atualizar responsável.', 'danger')
         
     return redirect(url_for('index'))
-
-# @app.route('/relatorio/pdf')
-# @login_required
-# def gerar_relatorio_pdf():
-#     ativos = db.listar_inventario_resumo()
-    
-#     pdf = FPDF()
-#     pdf.add_page()
-    
-#     # Cabeçalho
-#     pdf.set_font("helvetica", "B", 16)
-#     pdf.cell(0, 10, "AssetFlow - Relatório de Inventário de TI", 
-#             new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
-    
-#     pdf.set_font("helvetica", "", 10)
-#     pdf.cell(0, 10, f"Gerado por: {current_user.username}", 
-#             new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
-#     pdf.ln(10)
-    
-#     # Tabela Cabeçalho
-#     pdf.set_fill_color(200, 220, 255)
-#     pdf.set_font("helvetica", "B", 10)
-#     pdf.cell(30, 10, "Patrimônio", border=1, fill=True)
-#     pdf.cell(35, 10, "Tipo", border=1, fill=True)
-#     pdf.cell(50, 10, "Modelo", border=1, fill=True)
-#     pdf.cell(30, 10, "Status", border=1, fill=True)
-#     pdf.cell(45, 10, "Responsável", border=1, fill=True, 
-#             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    
-#     # Tabela Dados
-#     pdf.set_font("helvetica", "", 9)
-#     for ativo in ativos:
-#         pdf.cell(30, 10, str(ativo['tag_patrimonio']), border=1)
-#         pdf.cell(35, 10, str(ativo['tipo']), border=1)
-#         pdf.cell(50, 10, str(ativo['modelo']), border=1)
-#         pdf.cell(30, 10, str(ativo['status']), border=1)
-#         pdf.cell(45, 10, str(ativo['responsavel_atual']), border=1, 
-#                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-#     # --- A MÁGICA PARA RESOLVER O ERRO ---
-#     # Geramos o PDF como bytes e colocamos num buffer de memória (BytesIO)
-#     pdf_output = pdf.output()
-#     buffer = io.BytesIO(pdf_output)
-#     buffer.seek(0)
-
-#     return send_file(
-#         buffer,
-#         as_attachment=False,
-#         download_name='relatorio_ativos.pdf',
-#         mimetype='application/pdf'
-#     )
 
 @app.route('/relatorio/pdf')
 @login_required
@@ -254,17 +204,18 @@ def eliminar_colaborador(id_usuario):
 @app.route('/colaboradores/novo', methods=['GET', 'POST'])
 @login_required
 def novo_colaborador():
-    # TRAVA DE SEGURANÇA: apenas usuario admin podera criar novos usuarios
-    if current_user.username != 'admin':
+    # trava de segurança para apenas o admin fazer alteraçoes nos usuarios
+    if current_user.role != 'admin':
         flash('Acesso negado: apenas o administrador pode criar usuários.', 'danger')
         return redirect(url_for('index'))
 
     if request.method == 'POST':
         novo_user = request.form.get('username')
         nova_senha = request.form.get('password')
+        cargo_atribuido = request.form.get('role')
         
-        if db.inserir_usuario(novo_user, nova_senha):
-            flash(f'Usuário {novo_user} criado com sucesso!', 'success')
+        if db.inserir_usuario(novo_user, nova_senha, cargo_atribuido):
+            flash(f'Usuário {novo_user} ({cargo_atribuido}) criado com sucesso!', 'success')
             return redirect(url_for('colaboradores'))
         else:
             flash('Erro: Este nome de usuário já existe.', 'danger')
