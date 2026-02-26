@@ -4,6 +4,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 from database import Database
+from werkzeug.security import check_password_hash
 
 app = Flask(__name__)
 app.secret_key = '20@09@2003@dvpl'
@@ -34,14 +35,17 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        
         user_db = db.buscar_usuario(username)
         
-        if user_db and user_db['password'] == password:
+        #Compara a senha digitada com o Hash do banco
+        if user_db and check_password_hash(user_db['password'], password):
             user_obj = User(id=user_db['id'], username=user_db['username'], role=user_db['role'])
             login_user(user_obj)
             return redirect(url_for('index'))
         else:
             flash('Usuário ou senha inválidos', 'danger')
+            
     return render_template('login.html')
 
 @app.route('/logout')
@@ -53,11 +57,11 @@ def logout():
 @app.route('/')
 @login_required 
 def index():
-    # 1. Captura os filtros que vêm da URL (se existirem)
+    # Captura os filtros que vêm da URL (se existirem)
     filtro_tipo = request.args.get('tipo', '')
     filtro_modelo = request.args.get('modelo', '')
 
-    # 2. Busca os ativos filtrados (ou todos, se os campos estiverem vazios)
+    # Busca os ativos filtrados (ou todos, se os campos estiverem vazios)
     ativos = db.listar_inventario_filtrado(filtro_tipo, filtro_modelo)
     
     stats = db.get_estatisticas()
@@ -67,7 +71,7 @@ def index():
                             ativos=ativos, 
                             stats=stats, 
                             meus_equipamentos=meus_equipamentos,
-                            filtro_tipo=filtro_tipo, # Passamos de volta para manter o campo preenchido
+                            filtro_tipo=filtro_tipo,
                             filtro_modelo=filtro_modelo)
 
 @app.route('/editar/<tag>', methods=['GET', 'POST'])
@@ -223,7 +227,7 @@ def novo_colaborador():
     return render_template('novo_colaborador.html')
 
 @app.route('/add_equipamento', methods=['POST'])
-@login_required # Garante que apenas técnicos logados usem esta função
+@login_required
 def add_equipamento():
     nome = request.form.get('nome_equipamento')
     tipo = request.form.get('tipo')
@@ -253,7 +257,6 @@ def cadastrar():
             flash('Ativo cadastrado com sucesso!', 'success')
             return redirect(url_for('index'))
         else:
-            # Agora o flash funcionará corretamente aqui
             flash('Erro: Tag de Patrimônio ou Série já cadastrada.', 'danger')
     
     return render_template('cadastrar.html')

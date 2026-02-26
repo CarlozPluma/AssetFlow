@@ -32,8 +32,6 @@ CREATE TABLE IF NOT EXISTS ativos (
     responsavel_atual TEXT
 );
 
--- Adicione as outras tabelas (movimentacoes, manutencoes) e a VIEW aqui...
-
 -- Tabela de Atribuições (O vínculo entre o Ativo e o Colaborador)
 CREATE TABLE IF NOT EXISTS atribuicoes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

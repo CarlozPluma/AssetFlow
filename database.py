@@ -1,5 +1,6 @@
 import sqlite3
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 class Database:
     def __init__(self, db_name="inventario_ti.db"):
@@ -83,15 +84,19 @@ class Database:
             conn.close()
 
     def inserir_usuario(self, username, password, role='tecnico'):
-        """Cria um novo colaborador no sistema."""
+        """Cria um novo usuário com senha protegida por Hash."""
         try:
+            # Gera o hash da senha antes de salvar
+            senha_hash = generate_password_hash(password) 
+            
             conn = self.get_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO usuarios (username, password, role) VALUES (?, ?, ?)", (username, password, role))
+            cursor.execute("INSERT INTO usuarios (username, password, role) VALUES (?, ?, ?)", 
+                            (username, senha_hash, role))
             conn.commit()
             return True
         except sqlite3.IntegrityError:
-            return False # Usuário já existe
+            return False
         finally:
             conn.close()
 
@@ -100,7 +105,6 @@ class Database:
         conn = self.get_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        # Buscamos o ID e o Username (nunca mande a senha para o template por segurança)
         cursor.execute("SELECT id, username FROM usuarios ORDER BY username ASC")
         usuarios = cursor.fetchall()
         conn.close()
@@ -108,9 +112,8 @@ class Database:
 
     def listar_inventario_resumo(self):
         conn = self.get_connection()
-        conn.row_factory = sqlite3.Row # IMPORTANTE: permite ler pelo nome da coluna
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        # Verifica se a tua query ou VIEW inclui o responsavel_atual
         cursor.execute("SELECT * FROM ativos") 
         rows = cursor.fetchall()
         conn.close()
@@ -144,7 +147,6 @@ class Database:
         conn.close()
         return stats
     
-    # Outros métodos de consulta e manipulação de dados podem ser adicionados aqui
     
     def buscar_ativo_por_tag(self, tag):
         """Busca os detalhes de um ativo específico pela Tag."""
@@ -174,7 +176,6 @@ class Database:
             conn.close()
             
     
-    # Adicione estes métodos dentro da classe Database no seu arquivo database.py
 
     def inserir_equipamento(self, nome, tipo, patrimonio, responsavel_id):
         """Vincula um equipamento específico a um técnico/usuário."""
@@ -201,7 +202,6 @@ class Database:
         conn.close()
         return rows
     
-    # Adicione este método dentro da classe Database no seu database.py
     def atualizar_responsavel(self, tag, novo_responsavel):
         try:
             conn = self.get_connection()
@@ -219,7 +219,7 @@ class Database:
             
     def listar_ativos(self):
         conn = self.get_connection()
-        conn.row_factory = sqlite3.Row # Isto é vital para o HTML ler ativo.responsavel_atual
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM ativos")
         rows = cursor.fetchall()
