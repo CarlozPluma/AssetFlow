@@ -18,6 +18,15 @@ class Database:
         with open('schema.sql', 'r', encoding='utf-8') as f:
             cursor.executescript(f.read())
         conn.commit()
+        
+        cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
+        if not cursor.fetchone():
+            senha_hash = generate_password_hash('admin123')
+            cursor.execute("INSERT INTO usuarios (username, password, role) VALUES (?, ?, ?)",
+                            ('admin', senha_hash, 'admin'))
+            conn.commit()
+            print("Usuário Admin criado com sucesso!")
+            
         conn.close()
 
     def inserir_ativo(self, tag, tipo, marca, modelo, serie):
@@ -60,7 +69,6 @@ class Database:
         return user
     
     def buscar_usuario_por_id(self, user_id):
-        """Busca o usuário pelo ID para manter a sessão ativa."""
         conn = self.get_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()

@@ -38,14 +38,12 @@ def login():
         
         user_db = db.buscar_usuario(username)
         
-        #Compara a senha digitada com o Hash do banco
         if user_db and check_password_hash(user_db['password'], password):
             user_obj = User(id=user_db['id'], username=user_db['username'], role=user_db['role'])
             login_user(user_obj)
             return redirect(url_for('index'))
         else:
             flash('Usuário ou senha inválidos', 'danger')
-            
     return render_template('login.html')
 
 @app.route('/logout')

@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS atribuicoes (
 CREATE TABLE IF NOT EXISTS usuarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL, -- Em um sistema real, usaríamos hash (PBKDF2)
+    password TEXT NOT NULL,
     role TEXT DEFAULT 'tecnico'
 );
 
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS equipamentos (
 );
 
 -- Criar um usuário padrão para teste (Admin / admin123)
-INSERT OR IGNORE INTO usuarios (username, password, role) VALUES ('admin', 'admin123', 'admin');
+-- INSERT OR IGNORE INTO usuarios (username, password, role) VALUES ('admin', 'admin123', 'admin');
 
 -- Garante que a versão antiga seja removida antes de criar a nova
 DROP VIEW IF EXISTS vw_resumo_inventario; 
